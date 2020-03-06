@@ -1,0 +1,15 @@
+#!/usr/bin/bash
+
+COUNT_FILE=~/.shell-tap-count
+if [ -e "$COUNT_FILE" ] ; then
+  count="$(wc -l < "$COUNT_FILE" | tr -d '[:space:]')"
+else
+  count=0
+fi
+echo >> "$COUNT_FILE"
+
+echo "welcome to TAP shell {count: $count}"
+
+/usr/bin/bash -eo pipefail "$@"
+
+echo "good-bye from TAP shell"
