@@ -10,6 +10,18 @@ echo >> "$COUNT_FILE"
 
 echo "welcome to TAP shell {count: $count}"
 
-/usr/bin/bash -eo pipefail "$@"
+if /usr/bin/bash -eo pipefail "$@" 2>&1 ; then
+  FAILED=0
+else
+  FAILED=1
+fi
 
-echo "good-bye from TAP shell"
+echo "good-bye from TAP shell $FAILED"
+
+# yaml2js < $MN_HOME/.circleci/config.yml | jq .jobs.step_junit.steps[0].run.name
+# write in pure python:
+# - given a circleci config
+# - extra step name given job name and index
+# - write out either xunit direct or TAP and tap-xunit to convert
+# - include tail lines from output by | tee to file so testing tools can see
+#     - if possible limit tail to last (failing) command
