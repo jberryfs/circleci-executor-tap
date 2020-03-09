@@ -18,6 +18,8 @@ fi
 
 echo "good-bye from TAP shell $FAILED"
 
+exit $FAILED
+
 # yaml2js < $MN_HOME/.circleci/config.yml | jq .jobs.step_junit.steps[0].run.name
 # write in pure python:
 # - given a circleci config
