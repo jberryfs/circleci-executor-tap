@@ -1,3 +1,3 @@
-FROM registry.opensuse.org/opensuse/busybox:latest
+FROM opensuse/tumbleweed
 
 COPY shell-tap /bin/
