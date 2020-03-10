@@ -1,6 +1,15 @@
-#!/usr/bin/bash
+#!/bin/bash
 
-COUNT_FILE=~/.shell-tap-count
+CIRCLE_JOB="${CIRCLE_JOB:-test}"
+TEMPLATE_FILE="./xunit-template.xml"
+JUNIT_OUT_DIR="./junit" # TODO tmp
+
+# SHELL="${SHELL_TAP_SHELL:-/usr/bin/bash}"
+SHELL="${SHELL_TAP_SHELL:-/bin/bash}"
+COUNT_FILE=/tmp/shell-tap-count
+OUT_FILE=/tmp/shell-tap.out
+TEMPLATE_FILE="${TEMPLATE_FILE:-/usr/share/shell-tap/xunit-template.xml}"
+
 if [ -e "$COUNT_FILE" ] ; then
   count="$(wc -l < "$COUNT_FILE" | tr -d '[:space:]')"
 else
@@ -10,20 +19,98 @@ echo >> "$COUNT_FILE"
 
 echo "welcome to TAP shell {count: $count}"
 
-if /usr/bin/bash -eo pipefail "$@" 2>&1 ; then
-  FAILED=0
-else
-  FAILED=1
+timestamp() {
+  date +"%s"
+}
+start="$(timestamp)"
+
+set -o pipefail
+$SHELL -eo pipefail "$@" 2>&1 | tee "$OUT_FILE"
+# $SHELL -eo pipefail "$@" 2>&1
+result=$?
+stop="$(timestamp)"
+
+delta="$(($stop - $start))"
+
+if [ ! -e "$JUNIT_OUT_DIR" ] ; then
+  mkdir -p "$JUNIT_OUT_DIR"
 fi
 
-echo "good-bye from TAP shell $FAILED"
+# TODO read in step information.
+CIRCLE_BUILD_NUM="${CIRCLE_BUILD_NUM:-$stop}"
+xunit_file="$JUNIT_OUT_DIR/circleci-$CIRCLE_JOB-$count-$CIRCLE_BUILD_NUM.xml"
+# cp "$TEMPLATE_FILE" "$xunit_file"
+# 
+# sed -i.osx "s/%%TIME%%/$delta/g" "$xunit_file"
+# sed -i.osx "s/%%CIRCLECI_JOB%%/$CIRCLE_JOB/g" "$xunit_file"
+# sed -i.osx "s/%%TIMESTAMP%%/$(date +%Y-%m-%dT%H:%M:%S)/g" "$xunit_file"
+# sed -i.osx "s/%%STEP_NUMBER%%/$count/g" "$xunit_file"
+# 
+
+# <failure><![CDATA[%%FAILURE_MESSAGE%%]]></failure>
+
+if [ $result -eq 0 ] ; then
+  FAILED=0
+#   sed -i.osx '5d' "$xunit_file"
+else
+  FAILED=1
+
+#   echo "ERROR: $message"
+#   sed -i "s/%%FAILURE_MESSAGE%%/$message/" "$xunit_file"
+fi
+
+
+xunit_timestamp="$(date +%Y-%m-%dT%H:%M:%S)"
+cat > "$xunit_file" <<- EOM
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="CircleCI Jobs Steps" time="$delta" tests="1" failures="$FAILED">
+  <testsuite name="$CIRCLE_JOB" timestamp="$xunit_timestamp" tests="1" failures="$FAILED" time="$delta">
+    <testcase name="Step #$count" time="$delta" classname="CircleCI.Job.Step.$CIRCLE_JOB.$count">
+EOM
+
+if [ $FAILED -eq 1 ] ; then
+  message="$(tail -n 10 "$OUT_FILE")"
+  echo "      <failure><![CDATA[$message]]></failure>" >> "$xunit_file"
+fi
+
+cat >> "$xunit_file" <<- EOM
+    </testcase>
+  </testsuite>
+</testsuites>
+EOM
+
+
+# 
+# sed -i.osx "s/%%FAILURE%%/$FAILED/g" "$xunit_file"
+# rm "$xunit_file.osx"
+# 
+# echo "$xunit_file:"
+# cat "$xunit_file"
+
+# xunit_timestamp="$(date +%Y-%m-%dT%H:%M:%S)"
+# cat > "$xunit_file" <<- EOM
+# <?xml version="1.0" encoding="UTF-8"?>
+# <testsuites name="CircleCI Jobs Steps" time="$delta" tests="1" failures="$FAILED">
+#   <testsuite name="$CIRCLE_JOB" timestamp="$xunit_timestamp" tests="1" failures="$FAILED" time="$delta">
+#     <testcase name="Step #$count" time="$delta" classname="CircleCI.Job.Step.$CIRCLE_JOB.$count">
+#       <failure/>
+#     </testcase>
+#   </testsuite>
+# </testsuites>
+# EOM
+
+
+echo "spent $delta"
+
+echo "good-bye from TAP shell"
 
 exit $FAILED
 
-# yaml2js < $MN_HOME/.circleci/config.yml | jq .jobs.step_junit.steps[0].run.name
-# write in pure python:
-# - given a circleci config
-# - extra step name given job name and index
-# - write out either xunit direct or TAP and tap-xunit to convert
-# - include tail lines from output by | tee to file so testing tools can see
-#     - if possible limit tail to last (failing) command
+# <?xml version="1.0" encoding="UTF-8"?>
+# <testsuites name="CircleCI Jobs" time="%%TIME%%" tests="1" failures="%%FAILURE%%">
+#   <testsuite name="%%CIRCLECI_JOB%%" timestamp="%%TIMESTAMP%%" tests="1" failures="%%FAILURE%%" time="%%TIME%%">
+#     <testcase name="Step" time="%%TIME%%" classname="CircleCI.Job.Step">
+#       <failure><![CDATA[%%FAILURE_MESSAGE%%]]></failure>
+#     </testcase>
+#   </testsuite>
+# </testsuites>
