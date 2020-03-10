@@ -2,7 +2,7 @@
 
 CIRCLE_JOB="${CIRCLE_JOB:-test}"
 # TEMPLATE_FILE="./xunit-template.xml"
-XUNIT_OUT_DIR="./xunit" # TODO tmp
+# XUNIT_OUT_DIR="./xunit" # TODO tmp
 
 XUNIT_OUT_DIR="${XUNIT_OUT_DIR:-/tmp/xunit/}"
 
