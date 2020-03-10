@@ -1,14 +1,16 @@
 #!/bin/bash
 
 CIRCLE_JOB="${CIRCLE_JOB:-test}"
-TEMPLATE_FILE="./xunit-template.xml"
-JUNIT_OUT_DIR="./junit" # TODO tmp
+# TEMPLATE_FILE="./xunit-template.xml"
+XUNIT_OUT_DIR="./xunit" # TODO tmp
+
+XUNIT_OUT_DIR="${XUNIT_OUT_DIR:-/tmp/xunit/}"
 
 # SHELL="${SHELL_TAP_SHELL:-/usr/bin/bash}"
 SHELL="${SHELL_TAP_SHELL:-/bin/bash}"
 COUNT_FILE=/tmp/shell-tap-count
 OUT_FILE=/tmp/shell-tap.out
-TEMPLATE_FILE="${TEMPLATE_FILE:-/usr/share/shell-tap/xunit-template.xml}"
+# TEMPLATE_FILE="${TEMPLATE_FILE:-/usr/share/shell-tap/xunit-template.xml}"
 
 if [ -e "$COUNT_FILE" ] ; then
   count="$(wc -l < "$COUNT_FILE" | tr -d '[:space:]')"
@@ -32,13 +34,13 @@ stop="$(timestamp)"
 
 delta="$(($stop - $start))"
 
-if [ ! -e "$JUNIT_OUT_DIR" ] ; then
-  mkdir -p "$JUNIT_OUT_DIR"
+if [ ! -e "$XUNIT_OUT_DIR" ] ; then
+  mkdir -p "$XUNIT_OUT_DIR"
 fi
 
 # TODO read in step information.
 CIRCLE_BUILD_NUM="${CIRCLE_BUILD_NUM:-$stop}"
-xunit_file="$JUNIT_OUT_DIR/circleci-$CIRCLE_JOB-$count-$CIRCLE_BUILD_NUM.xml"
+xunit_file="$XUNIT_OUT_DIR/circleci-$CIRCLE_JOB-$count-$CIRCLE_BUILD_NUM.xml"
 # cp "$TEMPLATE_FILE" "$xunit_file"
 # 
 # sed -i.osx "s/%%TIME%%/$delta/g" "$xunit_file"
